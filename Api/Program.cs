@@ -1,5 +1,8 @@
 using Core.Entities.Models;
+using Core.Interfaces;
 using DataBase;
+using DataBase.Profiles;
+using DataBase.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,6 +30,17 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
         options.User.RequireUniqueEmail = true;
     })
     .AddEntityFrameworkStores<RepositoryContext>();
+
+builder.Services.AddAutoMapper(options =>
+{
+    options.AddProfile<EmployeeProfile>();
+    options.AddProfile<AddressProfile>();
+    options.AddProfile<CustomerProfile>();
+    options.AddProfile<AppointmentProfile>();
+});
+
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IAddressRepository, AddressRepository>();
 
 var app = builder.Build();
 
