@@ -10,10 +10,12 @@ namespace Api.Controllers.v1;
 public class AddressController : ControllerBase
 {
     private readonly IAddressRepository _addressRepository;
+    private readonly ILogger<AddressController> _logger;
 
-    public AddressController(IAddressRepository addressRepository)
+    public AddressController(IAddressRepository addressRepository, ILogger<AddressController> logger)
     {
         _addressRepository = addressRepository ?? throw new ArgumentNullException(nameof(addressRepository));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     [HttpGet("{addressId}")]
@@ -27,6 +29,7 @@ public class AddressController : ControllerBase
         }
         catch (Exception e)
         {
+            _logger.LogError(e, e.Message);
             return BadRequest(e.Message);
         }
     }

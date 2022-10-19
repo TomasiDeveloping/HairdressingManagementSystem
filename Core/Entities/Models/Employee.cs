@@ -15,7 +15,7 @@ public class Employee
     public string? WorkEmail { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }
-    public bool IsActive { get; set; }
+    public bool? IsActive { get; set; }
     public User? User { get; set; }
     public string? UserId { get; set; }
 }

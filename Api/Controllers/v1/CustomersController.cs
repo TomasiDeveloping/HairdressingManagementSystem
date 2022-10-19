@@ -10,10 +10,12 @@ namespace Api.Controllers.v1;
 public class CustomersController : ControllerBase
 {
     private readonly ICustomerRepository _customerRepository;
+    private readonly ILogger<CustomersController> _logger;
 
-    public CustomersController(ICustomerRepository customerRepository)
+    public CustomersController(ICustomerRepository customerRepository, ILogger<CustomersController> logger)
     {
         _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     [HttpGet]
@@ -27,6 +29,7 @@ public class CustomersController : ControllerBase
         }
         catch (Exception e)
         {
+            _logger.LogError(e, e.Message);
             return BadRequest(e.Message);
         }
     }

@@ -10,11 +10,13 @@ namespace Api.Controllers.v1;
 public class AppointmentsController : ControllerBase
 {
     private readonly IAppointmentRepository _appointmentRepository;
+    private readonly ILogger<AppointmentsController> _logger;
 
-    public AppointmentsController(IAppointmentRepository appointmentRepository)
+    public AppointmentsController(IAppointmentRepository appointmentRepository, ILogger<AppointmentsController> logger)
     {
         _appointmentRepository =
             appointmentRepository ?? throw new ArgumentNullException(nameof(appointmentRepository));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     [HttpGet("{appointmentId}")]
@@ -28,6 +30,7 @@ public class AppointmentsController : ControllerBase
         }
         catch (Exception e)
         {
+            _logger.LogError(e, e.Message);
             return BadRequest(e.Message);
         }
     }
