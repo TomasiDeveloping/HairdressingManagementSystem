@@ -1,4 +1,5 @@
 ﻿using Core.Entities.DataTransferObjects;
+using Core.Helpers.Services;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,7 +31,9 @@ public class AddressController : ControllerBase
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            return BadRequest(e.Message);
+            var errorResponse =
+                ErrorService.CreateError("Error in get address", StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -44,7 +47,10 @@ public class AddressController : ControllerBase
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse = ErrorService.CreateError("Could not create new address",
+                StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -53,13 +59,17 @@ public class AddressController : ControllerBase
     {
         try
         {
-            if (!addressId.Equals(addressDto.Id)) return BadRequest("Error in addressId");
+            if (!addressId.Equals(addressDto.Id))
+                throw new ArgumentException($"Id: {addressId} is not the same as in Object");
             var address = await _addressRepository.UpdateAddressAsync(addressDto);
             return Ok(address);
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse =
+                ErrorService.CreateError("Could not update address", StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -69,12 +79,15 @@ public class AddressController : ControllerBase
         try
         {
             var checkDelete = await _addressRepository.DeleteAddressByAddressIdAsync(addressId);
-            if (!checkDelete) return BadRequest($"Could not delete address with id: {addressId}");
+            if (!checkDelete) throw new Exception();
             return Ok(true);
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse =
+                ErrorService.CreateError("Could not delete address", StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 }

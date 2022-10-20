@@ -10,7 +10,6 @@ using Microsoft.OpenApi.Models;
 using NLog;
 using NLog.Web;
 
-
 var logger = LogManager.Setup().LoadConfigurationFromAppSettings().GetCurrentClassLogger();
 logger.Info("Application Starting Up");
 
@@ -27,16 +26,16 @@ try
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
     {
-        c.SwaggerDoc("v1", new OpenApiInfo { Title = "Hairdressing Management", Version = "v1" });
+        c.SwaggerDoc("v1", new OpenApiInfo {Title = "Hairdressing Management", Version = "v1"});
 
-        var securitySchema = new OpenApiSecurityScheme()
+        var securitySchema = new OpenApiSecurityScheme
         {
             Description = "JWT Auth Bearer Scheme",
             Name = "Authorization",
             In = ParameterLocation.Header,
             Type = SecuritySchemeType.Http,
             Scheme = "bearer",
-            Reference = new OpenApiReference()
+            Reference = new OpenApiReference
             {
                 Type = ReferenceType.SecurityScheme,
                 Id = "Bearer"
@@ -45,12 +44,12 @@ try
 
         c.AddSecurityDefinition("Bearer", securitySchema);
         var securityRequirement = new OpenApiSecurityRequirement
-    {
         {
-            securitySchema, new[]
-                {"Bearer"}
-        }
-    };
+            {
+                securitySchema, new[]
+                    {"Bearer"}
+            }
+        };
         c.AddSecurityRequirement(securityRequirement);
     });
 
@@ -68,14 +67,14 @@ try
     });
 
     builder.Services.AddIdentity<User, IdentityRole>(options =>
-    {
-        options.Password.RequiredLength = 7;
-        options.Password.RequireDigit = true;
-        options.Password.RequireUppercase = true;
-        options.Password.RequireLowercase = true;
+        {
+            options.Password.RequiredLength = 7;
+            options.Password.RequireDigit = true;
+            options.Password.RequireUppercase = true;
+            options.Password.RequireLowercase = true;
 
-        options.User.RequireUniqueEmail = true;
-    })
+            options.User.RequireUniqueEmail = true;
+        })
         .AddEntityFrameworkStores<RepositoryContext>();
 
     builder.Services.AddAutoMapper(options =>
@@ -90,6 +89,7 @@ try
     builder.Services.AddScoped<IAddressRepository, AddressRepository>();
     builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
     builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+
 
     var app = builder.Build();
 
@@ -113,4 +113,3 @@ catch (Exception e)
     logger.Error(e, "Stopped program because of exception");
     throw;
 }
-

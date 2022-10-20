@@ -1,4 +1,5 @@
 ﻿using Core.Entities.DataTransferObjects;
+using Core.Helpers.Services;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,7 +31,9 @@ public class EmployeesController : ControllerBase
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            return BadRequest(e.Message);
+            var errorResponse =
+                ErrorService.CreateError("Error in Get Employee", StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -45,7 +48,10 @@ public class EmployeesController : ControllerBase
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse =
+                ErrorService.CreateError("Error in Get Employee", StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -59,7 +65,10 @@ public class EmployeesController : ControllerBase
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse =
+                ErrorService.CreateError("Could not create new employee", StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -68,13 +77,17 @@ public class EmployeesController : ControllerBase
     {
         try
         {
-            if (!employeeId.Equals(employeeDto.Id)) return BadRequest("Error with employeeId");
+            if (!employeeId.Equals(employeeDto.Id))
+                throw new ArgumentException($"Id: {employeeId} is not the same as in Object");
             var employee = await _employeeRepository.UpdateEmployeeAsync(employeeDto);
             return Ok(employee);
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse =
+                ErrorService.CreateError("Could not update employee", StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -84,12 +97,15 @@ public class EmployeesController : ControllerBase
         try
         {
             var checkDelete = await _employeeRepository.DeleteEmployeeAsync(employeeId);
-            if (!checkDelete) return BadRequest($"Employee with id: {employeeId} could not be deleted");
-            return Ok(true);
+            if (!checkDelete) throw new Exception();
+                return Ok(true);
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse =
+                ErrorService.CreateError("Could not delete employee", StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 }
