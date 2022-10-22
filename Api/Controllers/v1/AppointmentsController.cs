@@ -1,4 +1,5 @@
 ﻿using Core.Entities.DataTransferObjects;
+using Core.Helpers.Services;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,7 +32,9 @@ public class AppointmentsController : ControllerBase
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            return BadRequest(e.Message);
+            var errorResponse = ErrorService.CreateError("Error in get appointment by id",
+                StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -46,7 +49,10 @@ public class AppointmentsController : ControllerBase
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse = ErrorService.CreateError($"Error in get appointments for customer with id: {customerId}",
+                StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -61,7 +67,11 @@ public class AppointmentsController : ControllerBase
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse = ErrorService.CreateError(
+                $"Error in get appointments for employee with id: {employeeId}", StatusCodes.Status400BadRequest,
+                e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -70,12 +80,16 @@ public class AppointmentsController : ControllerBase
     {
         try
         {
+            if (!ModelState.IsValid) return UnprocessableEntity(ModelState);
             var appointment = await _appointmentRepository.CreateAppointmentAsync(appointmentDto);
             return Ok(appointment);
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse = ErrorService.CreateError("Could not create new appointment",
+                StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -84,13 +98,16 @@ public class AppointmentsController : ControllerBase
     {
         try
         {
-            if (!appointmentId.Equals(appointmentDto.Id)) return BadRequest("Error in appointmentId");
+            if (!appointmentId.Equals(appointmentDto.Id)) ErrorService.IdError(appointmentId);
             var appointment = await _appointmentRepository.UpdateAppointmentAsync(appointmentDto);
             return Ok(appointment);
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse = ErrorService.CreateError("Could not update appointment",
+                StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -100,12 +117,15 @@ public class AppointmentsController : ControllerBase
         try
         {
             var checkDelete = await _appointmentRepository.DeleteAppointmentByIdAsync(appointmentId);
-            if (!checkDelete) return BadRequest($"Could not delete appointment with id: {appointmentId}");
+            if (!checkDelete) throw new Exception();
             return Ok(true);
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse = ErrorService.CreateError("Could not delete appointment",
+                StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 }

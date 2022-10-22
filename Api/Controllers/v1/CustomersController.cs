@@ -1,4 +1,5 @@
 ﻿using Core.Entities.DataTransferObjects;
+using Core.Helpers.Services;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,7 +31,9 @@ public class CustomersController : ControllerBase
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            return BadRequest(e.Message);
+            var errorResponse =
+                ErrorService.CreateError("Error in get customers", StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -45,7 +48,10 @@ public class CustomersController : ControllerBase
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse = ErrorService.CreateError("Error in get customer by id", StatusCodes.Status400BadRequest,
+                e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -54,12 +60,16 @@ public class CustomersController : ControllerBase
     {
         try
         {
+            if (!ModelState.IsValid) return UnprocessableEntity(ModelState);
             var customer = await _customerRepository.CreateCustomerAsync(customerDto);
             return Ok(customer);
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse = ErrorService.CreateError("Could not create new customer",
+                StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -68,13 +78,16 @@ public class CustomersController : ControllerBase
     {
         try
         {
-            if (!customerId.Equals(customerDto.Id)) return BadRequest("Error in customerId");
+            if (!customerId.Equals(customerDto.Id)) ErrorService.IdError(customerId);
             var customer = await _customerRepository.UpdateCustomerAsync(customerDto);
             return Ok(customer);
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse =
+                ErrorService.CreateError("Could not update customer", StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
         }
     }
 
@@ -84,12 +97,15 @@ public class CustomersController : ControllerBase
         try
         {
             var checkDelete = await _customerRepository.DeleteCustomerByCustomerId(customerId);
-            if (!checkDelete) return BadRequest($"Could not delete customer with id: {customerId}");
+            if (!checkDelete) throw new Exception();
             return Ok(true);
         }
         catch (Exception e)
         {
-            return BadRequest(e.Message);
+            _logger.LogError(e, e.Message);
+            var errorResponse = ErrorService.CreateError("Could not delete customer", StatusCodes.Status400BadRequest,
+                e.Message);
+            return BadRequest(errorResponse);
         }
     }
 }

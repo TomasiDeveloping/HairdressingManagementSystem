@@ -32,7 +32,7 @@ public class AddressController : ControllerBase
         {
             _logger.LogError(e, e.Message);
             var errorResponse =
-                ErrorService.CreateError("Error in get address", StatusCodes.Status400BadRequest, e.Message);
+                ErrorService.CreateError("Error in get address by id", StatusCodes.Status400BadRequest, e.Message);
             return BadRequest(errorResponse);
         }
     }
@@ -42,6 +42,7 @@ public class AddressController : ControllerBase
     {
         try
         {
+            if (!ModelState.IsValid) return UnprocessableEntity(ModelState);
             var address = await _addressRepository.CreateAddressAsync(addressDto);
             return Ok(address);
         }
@@ -59,9 +60,8 @@ public class AddressController : ControllerBase
     {
         try
         {
-            if (!addressId.Equals(addressDto.Id))
-                throw new ArgumentException($"Id: {addressId} is not the same as in Object");
-            var address = await _addressRepository.UpdateAddressAsync(addressDto);
+            if (!addressId.Equals(addressDto.Id)) ErrorService.IdError(addressId);
+                var address = await _addressRepository.UpdateAddressAsync(addressDto);
             return Ok(address);
         }
         catch (Exception e)

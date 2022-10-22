@@ -32,7 +32,7 @@ public class EmployeesController : ControllerBase
         {
             _logger.LogError(e, e.Message);
             var errorResponse =
-                ErrorService.CreateError("Error in Get Employee", StatusCodes.Status400BadRequest, e.Message);
+                ErrorService.CreateError("Error in get employees", StatusCodes.Status400BadRequest, e.Message);
             return BadRequest(errorResponse);
         }
     }
@@ -50,7 +50,7 @@ public class EmployeesController : ControllerBase
         {
             _logger.LogError(e, e.Message);
             var errorResponse =
-                ErrorService.CreateError("Error in Get Employee", StatusCodes.Status400BadRequest, e.Message);
+                ErrorService.CreateError("Error in get employee by id", StatusCodes.Status400BadRequest, e.Message);
             return BadRequest(errorResponse);
         }
     }
@@ -60,6 +60,7 @@ public class EmployeesController : ControllerBase
     {
         try
         {
+            if (!ModelState.IsValid) return UnprocessableEntity(ModelState);
             var employee = await _employeeRepository.CreateEmployeeAsync(employeeDto);
             return Created("", employee);
         }
@@ -77,9 +78,8 @@ public class EmployeesController : ControllerBase
     {
         try
         {
-            if (!employeeId.Equals(employeeDto.Id))
-                throw new ArgumentException($"Id: {employeeId} is not the same as in Object");
-            var employee = await _employeeRepository.UpdateEmployeeAsync(employeeDto);
+            if (!employeeId.Equals(employeeDto.Id)) ErrorService.IdError(employeeId);
+                var employee = await _employeeRepository.UpdateEmployeeAsync(employeeDto);
             return Ok(employee);
         }
         catch (Exception e)

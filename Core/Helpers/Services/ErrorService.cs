@@ -13,4 +13,9 @@ public class ErrorService
             ExceptionMessage = exceptionMessage
         };
     }
+
+    public static void IdError(string id)
+    {
+        throw new ArgumentException($"Id: {id} is not the same as in Object");
+    }
 }

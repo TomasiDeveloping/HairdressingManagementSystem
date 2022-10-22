@@ -1,13 +1,22 @@
-﻿namespace Core.Entities.DataTransferObjects;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Core.Entities.DataTransferObjects;
 
 public class CustomerDto
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
-    public string? FirstName { get; set; }
-    public string? LastName { get; set; }
+
+    [Required] [StringLength(200)] public string? FirstName { get; set; }
+
+    [Required] [StringLength(200)] public string? LastName { get; set; }
+
     public AddressDto AddressDto { get; set; } = new();
-    public string? AddressId { get; set; }
-    public string? Email { get; set; }
-    public string? PhoneNumber { get; set; }
+
+    [Required] public string? AddressId { get; set; }
+
+    [StringLength(200)] public string? Email { get; set; }
+
+    [StringLength(100)] public string? PhoneNumber { get; set; }
+
     public string? UserId { get; set; }
 }

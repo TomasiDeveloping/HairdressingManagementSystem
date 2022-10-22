@@ -1,11 +1,18 @@
-﻿namespace Core.Entities.DataTransferObjects;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Core.Entities.DataTransferObjects;
 
 public class AddressDto
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
-    public string? Street { get; set; }
-    public string? HouseNumber { get; set; }
-    public int Zip { get; set; }
-    public string? City { get; set; }
-    public string? AddressAddition { get; set; }
+
+    [Required] [StringLength(250)] public string? Street { get; set; }
+
+    [Required] [StringLength(10)] public string? HouseNumber { get; set; }
+
+    [Required] public int Zip { get; set; }
+
+    [Required] [StringLength(150)] public string? City { get; set; }
+
+    [StringLength(250)] public string? AddressAddition { get; set; }
 }
