@@ -1,4 +1,5 @@
 using Core.Entities.Models;
+using Core.Helpers.Services;
 using Core.Interfaces;
 using DataBase;
 using DataBase.Profiles;
@@ -83,12 +84,16 @@ try
         options.AddProfile<AddressProfile>();
         options.AddProfile<CustomerProfile>();
         options.AddProfile<AppointmentProfile>();
+        options.AddProfile<CustomerForRegistrationProfile>();
+        options.AddProfile<EmployeeForRegistrationProfile>();
     });
 
     builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
     builder.Services.AddScoped<IAddressRepository, AddressRepository>();
     builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
     builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+
+    builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 
     var app = builder.Build();
