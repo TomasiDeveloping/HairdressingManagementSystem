@@ -44,6 +44,7 @@ public class EmployeeRepository : IEmployeeRepository
         if (_context.Employees == null) throw new ArgumentNullException(nameof(_context));
         var employee = _mapper.Map<Employee>(employeeDto);
         employee.Address = _mapper.Map<Address>(employeeDto.AddressDto);
+        await _context.Employees.AddAsync(employee);
         await _context.SaveChangesAsync();
         return _mapper.Map<EmployeeDto>(employee);
     }
