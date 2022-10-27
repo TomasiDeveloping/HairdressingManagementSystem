@@ -59,4 +59,21 @@ public class AuthenticationController : ControllerBase
             return BadRequest(errorResponse);
         }
     }
+
+    [HttpPost("[action]")]
+    public async Task<IActionResult> Login(AuthenticationDto authenticationDto)
+    {
+        try
+        {
+            if (!await _authenticationService.ValidateUser(authenticationDto)) return Unauthorized();
+            var tokenDto = await _authenticationService.CreateToken(populateExp: true);
+            return Ok(tokenDto);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, e.Message);
+            var errorResponse = ErrorService.CreateError("Login fail", StatusCodes.Status400BadRequest, e.Message);
+            return BadRequest(errorResponse);
+        }
+    }
 }
