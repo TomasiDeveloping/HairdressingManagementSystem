@@ -1,6 +1,8 @@
-﻿using Core.Helpers.Services;
+﻿using Core.Entities.Models;
+using Core.Helpers.Services;
 using Core.Interfaces;
 using Core.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers.v1;
@@ -11,13 +13,15 @@ public class AuthenticationController : ControllerBase
 {
     private readonly IAuthenticationService _authenticationService;
     private readonly ILogger<AuthenticationController> _logger;
+    private readonly UserManager<User> _userManager;
 
     public AuthenticationController(IAuthenticationService authenticationService,
-        ILogger<AuthenticationController> logger)
+        ILogger<AuthenticationController> logger, UserManager<User> userManager)
     {
         _authenticationService =
             authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
     }
 
     [HttpPost("[action]")]
@@ -65,9 +69,19 @@ public class AuthenticationController : ControllerBase
     {
         try
         {
-            if (!await _authenticationService.ValidateUser(authenticationDto)) return Unauthorized();
-            var tokenDto = await _authenticationService.CreateToken(populateExp: true);
-            return Ok(tokenDto);
+            var user = await _userManager.FindByEmailAsync(authenticationDto.Email);
+            if (user == null || !await _userManager.CheckPasswordAsync(user, authenticationDto.Password))
+            {
+                return Unauthorized(new AuthResponseDto() {ErrorMessage = "Invalid Authentication"});
+            }
+            var tokenDto = await _authenticationService.CreateToken(populateExp: true, user);
+            var authResponse = new AuthResponseDto()
+            {
+                RefreshToken = tokenDto.RefreshToken,
+                AccessToken = tokenDto.AccessToken,
+                IsAuthSuccessful = true,
+            };
+            return Ok(authResponse);
         }
         catch (Exception e)
         {

@@ -24,7 +24,6 @@ public class AuthenticationService : IAuthenticationService
     private readonly IMapper _mapper;
     private readonly UserManager<User> _userManager;
 
-    private User? _user;
 
     public AuthenticationService(IMapper mapper, UserManager<User> userManager, ILogger<AuthenticationService> logger,
         ICustomerRepository customerRepository, IEmployeeRepository employeeRepository, IConfiguration configuration)
@@ -73,6 +72,7 @@ public class AuthenticationService : IAuthenticationService
     {
         var result = new IdentityResult();
         var user = _mapper.Map<User>(employeeForRegistration);
+        user.EmailConfirmed = true;
         var employee = _mapper.Map<EmployeeDto>(employeeForRegistration);
         employee.UserId = user.Id;
 
@@ -101,29 +101,19 @@ public class AuthenticationService : IAuthenticationService
         return result;
     }
 
-    public async Task<bool> ValidateUser(AuthenticationDto authenticationDto)
-    {
-        _user = await _userManager.FindByEmailAsync(authenticationDto.Email);
-
-        var result = _user != null && await _userManager.CheckPasswordAsync(_user, authenticationDto.Password);
-
-        if (!result) _logger.LogWarning($"{nameof(ValidateUser)}: Authentication failed. Wrong email or password");
-        return result;
-    }
-
-    public async Task<TokenDto> CreateToken(bool populateExp)
+    public async Task<TokenDto> CreateToken(bool populateExp, User user)
     {
         var signInCredentials = GetSigningCredentials();
-        var claims =  await GetClaims();
+        var claims =  await GetClaims(user);
         var tokenOptions = GenerateTokenOptions(signInCredentials, claims);
 
         var refreshToken = GenerateRefreshToken();
 
-        _user.RefreshToken = refreshToken;
+        user.RefreshToken = refreshToken;
 
-        if (populateExp) _user.RefreshTokenExpiryTime = DateTime.Now.AddDays(7);
+        if (populateExp) user.RefreshTokenExpiryTime = DateTime.Now.AddDays(7);
 
-        await _userManager.UpdateAsync(_user);
+        await _userManager.UpdateAsync(user);
 
         var accessToken = new JwtSecurityTokenHandler().WriteToken(tokenOptions);
 
@@ -136,14 +126,13 @@ public class AuthenticationService : IAuthenticationService
 
     public async Task<TokenDto> RefreshToken(TokenDto tokenDto)
     {
-        var principal = GetPrincipalFromExpiredToken(tokenDto.RefreshToken!);
+        var principal = GetPrincipalFromExpiredToken(tokenDto.AccessToken!);
 
         var user = await _userManager.FindByNameAsync(principal.Identity.Name);
 
         if (user == null || user.RefreshToken != tokenDto.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.Now) throw  new Exception("Invalid client request. The tokenDto has some invalid values.");
 
-        _user = user;
-        return await CreateToken(populateExp: false);
+        return await CreateToken(populateExp: false, user);
     }
 
     #region Private Methods
@@ -156,13 +145,13 @@ public class AuthenticationService : IAuthenticationService
         return new SigningCredentials(secret, SecurityAlgorithms.HmacSha256);
     }
 
-    private async Task<List<Claim>> GetClaims()
+    private async Task<List<Claim>> GetClaims(User user)
     {
         var claims = new List<Claim>()
         {
-            new(ClaimTypes.Name, _user!.UserName)
+            new(ClaimTypes.Name, user!.UserName)
         };
-        var roles = await _userManager.GetRolesAsync(_user);
+        var roles = await _userManager.GetRolesAsync(user);
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         return claims;

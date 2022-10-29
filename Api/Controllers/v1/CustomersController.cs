@@ -1,6 +1,7 @@
 ﻿using Core.Entities.DataTransferObjects;
 using Core.Helpers.Services;
 using Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers.v1;
@@ -8,6 +9,7 @@ namespace Api.Controllers.v1;
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiVersion("1.0")]
 [ApiController]
+[Authorize]
 public class CustomersController : ControllerBase
 {
     private readonly ICustomerRepository _customerRepository;

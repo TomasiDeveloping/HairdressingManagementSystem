@@ -1,16 +1,7 @@
-using System.Text;
-using Core.Entities.Models;
+using Api.Extensions;
 using Core.Helpers.Services;
 using Core.Interfaces;
-using DataBase;
-using DataBase.Profiles;
 using DataBase.Repositories;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using NLog;
 using NLog.Web;
 
@@ -26,97 +17,27 @@ try
 
     // Add services to the container.
     builder.Services.AddControllers();
-    // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen(c =>
-    {
-        c.SwaggerDoc("v1", new OpenApiInfo {Title = "Hairdressing Management", Version = "v1"});
 
-        var securitySchema = new OpenApiSecurityScheme
-        {
-            Description = "JWT Auth Bearer Scheme",
-            Name = "Authorization",
-            In = ParameterLocation.Header,
-            Type = SecuritySchemeType.Http,
-            Scheme = "bearer",
-            Reference = new OpenApiReference
-            {
-                Type = ReferenceType.SecurityScheme,
-                Id = "Bearer"
-            }
-        };
+    builder.Services.ConfigureSwagger();
 
-        c.AddSecurityDefinition("Bearer", securitySchema);
-        var securityRequirement = new OpenApiSecurityRequirement
-        {
-            {
-                securitySchema, new[]
-                    {"Bearer"}
-            }
-        };
-        c.AddSecurityRequirement(securityRequirement);
-    });
+    builder.Services.ConfigureAutoMapper();
+
+    builder.Services.ConfigureIdentity();
+
+    builder.Services.ConfigureDbContext(builder.Configuration);
 
     var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-    builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    }).AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters()
-        {
-            ValidateIssuer = true,
-            ValidateAudience = false,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
+    builder.Services.ConfigureAuthentication(jwtSettings);
 
-            ValidIssuer = jwtSettings["validIssuer"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["secretKey"]))
-        };
-    });
-
-    builder.Services.AddApiVersioning(options =>
-    {
-        options.DefaultApiVersion = new ApiVersion(1, 0);
-        options.AssumeDefaultVersionWhenUnspecified = true;
-        options.ReportApiVersions = true;
-    });
-
-
-    builder.Services.AddDbContext<RepositoryContext>(options =>
-    {
-        options.UseSqlServer(builder.Configuration.GetConnectionString("HairdressingManagement"));
-    });
-
-    builder.Services.AddIdentity<User, IdentityRole>(options =>
-        {
-            options.Password.RequiredLength = 7;
-            options.Password.RequireDigit = true;
-            options.Password.RequireUppercase = true;
-            options.Password.RequireLowercase = true;
-
-            options.User.RequireUniqueEmail = true;
-        })
-        .AddEntityFrameworkStores<RepositoryContext>();
-
-    builder.Services.AddAutoMapper(options =>
-    {
-        options.AddProfile<EmployeeProfile>();
-        options.AddProfile<AddressProfile>();
-        options.AddProfile<CustomerProfile>();
-        options.AddProfile<AppointmentProfile>();
-        options.AddProfile<CustomerForRegistrationProfile>();
-        options.AddProfile<EmployeeForRegistrationProfile>();
-    });
+    builder.Services.ConfigureApiVersion();
 
     builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
     builder.Services.AddScoped<IAddressRepository, AddressRepository>();
     builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
     builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
-
     builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
-
 
     var app = builder.Build();
 
