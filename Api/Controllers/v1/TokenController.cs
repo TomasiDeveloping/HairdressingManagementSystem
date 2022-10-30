@@ -1,11 +1,14 @@
-﻿using Core.Helpers.Services;
+﻿using Core.Entities.Responses;
 using Core.Interfaces;
 using Core.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers.v1;
 
-[Route("api/[controller]")]
+[Route("api/v:{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
+[ApiExplorerSettings(GroupName = "v1")]
 [ApiController]
 public class TokenController : ControllerBase
 {
@@ -19,20 +22,19 @@ public class TokenController : ControllerBase
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    [AllowAnonymous]
     [HttpPost("[action]")]
-    public async Task<IActionResult> Refresh(TokenDto tokenDto)
+    public async Task<ActionResult<ApiOkResponse<TokenDto>>> Refresh(TokenDto tokenDto)
     {
         try
         {
             var tokenDtoToReturn = await _authenticationService.RefreshToken(tokenDto);
-            return Ok(tokenDtoToReturn);
+            return Ok(new ApiOkResponse<TokenDto>(tokenDtoToReturn));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse = ErrorService.CreateError("Could not refresh token", StatusCodes.Status400BadRequest,
-                e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 }

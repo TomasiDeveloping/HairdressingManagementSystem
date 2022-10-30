@@ -1,5 +1,5 @@
 ﻿using Core.Entities.DataTransferObjects;
-using Core.Helpers.Services;
+using Core.Entities.Responses;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,6 +7,7 @@ namespace Api.Controllers.v1;
 
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiVersion("1.0")]
+[ApiExplorerSettings(GroupName = "v1")]
 [ApiController]
 public class EmployeesController : ControllerBase
 {
@@ -20,92 +21,82 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<EmployeeDto>>> Get()
+    public async Task<ActionResult<ApiOkResponse<List<EmployeeDto>>>> Get()
     {
         try
         {
             var employees = await _employeeRepository.GetEmployeesAsync();
-            if (!employees.Any()) return NoContent();
-            return Ok(employees);
+            return Ok(new ApiOkResponse<List<EmployeeDto>>(employees));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse =
-                ErrorService.CreateError("Error in get employees", StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
     [HttpGet("{employeeId}")]
-    public async Task<ActionResult<EmployeeDto>> Get(string employeeId)
+    public async Task<ActionResult<ApiOkResponse<EmployeeDto>>> Get(string employeeId)
     {
         try
         {
             var employee = await _employeeRepository.GetEmployeeByIdAsync(employeeId);
-            if (employee == null) return NotFound($"No employee found with id: {employeeId}");
-            return Ok(employee);
+            if (employee == null) return NotFound(new ApiNotFoundResponse($"No employee found with id: {employeeId}"));
+            return Ok(new ApiOkResponse<EmployeeDto>(employee));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse =
-                ErrorService.CreateError("Error in get employee by id", StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
     [HttpPost]
-    public async Task<ActionResult<EmployeeDto>> Post(EmployeeDto employeeDto)
+    public async Task<ActionResult<ApiOkResponse<EmployeeDto>>> Post(EmployeeDto employeeDto)
     {
         try
         {
             if (!ModelState.IsValid) return UnprocessableEntity(ModelState);
             var employee = await _employeeRepository.CreateEmployeeAsync(employeeDto);
-            return Created("", employee);
+            return Ok(new ApiOkResponse<EmployeeDto>(employee));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse =
-                ErrorService.CreateError("Could not create new employee", StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
     [HttpPut("{employeeId}")]
-    public async Task<ActionResult<EmployeeDto>> Put(string employeeId, EmployeeDto employeeDto)
+    public async Task<ActionResult<ApiOkResponse<EmployeeDto>>> Put(string employeeId, EmployeeDto employeeDto)
     {
         try
         {
-            if (!employeeId.Equals(employeeDto.Id)) ErrorService.IdError(employeeId);
-                var employee = await _employeeRepository.UpdateEmployeeAsync(employeeDto);
-            return Ok(employee);
+            if (!employeeId.Equals(employeeDto.Id))
+                return BadRequest(new ApiBadRequestResponse($"Id: {employeeId} is not the same as in Object"));
+            var employee = await _employeeRepository.UpdateEmployeeAsync(employeeDto);
+            return Ok(new ApiOkResponse<EmployeeDto>(employee));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse =
-                ErrorService.CreateError("Could not update employee", StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
     [HttpDelete("{employeeId}")]
-    public async Task<ActionResult<bool>> Delete(string employeeId)
+    public async Task<ActionResult<ApiOkResponse<bool>>> Delete(string employeeId)
     {
         try
         {
             var checkDelete = await _employeeRepository.DeleteEmployeeAsync(employeeId);
-            if (!checkDelete) throw new Exception();
-                return Ok(true);
+            if (!checkDelete) return BadRequest(new ApiBadRequestResponse("Could not delete employee"));
+            return Ok(new ApiOkResponse<bool>(checkDelete));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse =
-                ErrorService.CreateError("Could not delete employee", StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 }

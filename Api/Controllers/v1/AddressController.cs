@@ -1,5 +1,5 @@
 ﻿using Core.Entities.DataTransferObjects;
-using Core.Helpers.Services;
+using Core.Entities.Responses;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,6 +7,7 @@ namespace Api.Controllers.v1;
 
 [Route("api/v{version:apiVersion}[controller]")]
 [ApiVersion("1.0")]
+[ApiExplorerSettings(GroupName = "v1")]
 [ApiController]
 public class AddressController : ControllerBase
 {
@@ -20,74 +21,68 @@ public class AddressController : ControllerBase
     }
 
     [HttpGet("{addressId}")]
-    public async Task<ActionResult<AddressDto>> Get(string addressId)
+    public async Task<ActionResult<ApiOkResponse<AddressDto>>> Get(string addressId)
     {
         try
         {
             var address = await _addressRepository.GetAddressByIdAsync(addressId);
-            if (address == null) return NotFound($"No address found with id: {addressId}");
-            return Ok(address);
+            if (address == null)
+                return NotFound(new ApiNotFoundResponse($"Address with id: {addressId} is not found."));
+            return Ok(new ApiOkResponse<AddressDto>(address));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse =
-                ErrorService.CreateError("Error in get address by id", StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
     [HttpPost]
-    public async Task<ActionResult<AddressDto>> Post(AddressDto addressDto)
+    public async Task<ActionResult<ApiOkResponse<AddressDto>>> Post(AddressDto addressDto)
     {
         try
         {
             if (!ModelState.IsValid) return UnprocessableEntity(ModelState);
             var address = await _addressRepository.CreateAddressAsync(addressDto);
-            return Ok(address);
+            return Ok(new ApiOkResponse<AddressDto>(address));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse = ErrorService.CreateError("Could not create new address",
-                StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
     [HttpPut("{addressId}")]
-    public async Task<ActionResult<AddressDto>> Put(string addressId, AddressDto addressDto)
+    public async Task<ActionResult<ApiOkResponse<AddressDto>>> Put(string addressId, AddressDto addressDto)
     {
         try
         {
-            if (!addressId.Equals(addressDto.Id)) ErrorService.IdError(addressId);
-                var address = await _addressRepository.UpdateAddressAsync(addressDto);
-            return Ok(address);
+            if (!addressId.Equals(addressDto.Id))
+                return BadRequest(new ApiBadRequestResponse($"Id: {addressId} is not the same as in Object"));
+            var address = await _addressRepository.UpdateAddressAsync(addressDto);
+            return Ok(new ApiOkResponse<AddressDto>(address));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse =
-                ErrorService.CreateError("Could not update address", StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
     [HttpDelete("{addressId}")]
-    public async Task<ActionResult<bool>> Delete(string addressId)
+    public async Task<ActionResult<ApiOkResponse<bool>>> Delete(string addressId)
     {
         try
         {
             var checkDelete = await _addressRepository.DeleteAddressByAddressIdAsync(addressId);
             if (!checkDelete) throw new Exception();
-            return Ok(true);
+            return Ok(new ApiOkResponse<bool>(checkDelete));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse =
-                ErrorService.CreateError("Could not delete address", StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 }

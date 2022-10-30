@@ -1,13 +1,16 @@
 ﻿using Core.Entities.Models;
-using Core.Helpers.Services;
+using Core.Entities.Responses;
 using Core.Interfaces;
 using Core.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers.v1;
 
 [Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
+[ApiExplorerSettings(GroupName = "v1")]
 [ApiController]
 public class AuthenticationController : ControllerBase
 {
@@ -24,6 +27,7 @@ public class AuthenticationController : ControllerBase
         _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
     }
 
+    [AllowAnonymous]
     [HttpPost("[action]")]
     public async Task<IActionResult> RegisterCustomer(CustomerForRegistration customerForRegistration)
     {
@@ -38,12 +42,11 @@ public class AuthenticationController : ControllerBase
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse = ErrorService.CreateError("Could not register new customer",
-                StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
+    [Authorize(Roles = "Administrator")]
     [HttpPost("[action]")]
     public async Task<IActionResult> RegisterEmployee(EmployeeForRegistration employeeForRegistration)
     {
@@ -58,36 +61,51 @@ public class AuthenticationController : ControllerBase
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse = ErrorService.CreateError("Could not register new employee",
-                StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
+    [AllowAnonymous]
     [HttpPost("[action]")]
     public async Task<IActionResult> Login(AuthenticationDto authenticationDto)
     {
         try
         {
             var user = await _userManager.FindByEmailAsync(authenticationDto.Email);
-            if (user == null || !await _userManager.CheckPasswordAsync(user, authenticationDto.Password))
+            if (user == null) return Unauthorized(new AuthResponseDto {ErrorMessage = "Invalid Authentication"});
+
+            if (!await _userManager.IsEmailConfirmedAsync(user))
+                return Unauthorized(new AuthResponseDto {ErrorMessage = "Email is not confirmed"});
+
+            if (await _userManager.IsLockedOutAsync(user))
+                return Unauthorized(new AuthResponseDto {ErrorMessage = "The Account is locked out"});
+
+            if (!await _userManager.CheckPasswordAsync(user, authenticationDto.Password))
             {
-                return Unauthorized(new AuthResponseDto() {ErrorMessage = "Invalid Authentication"});
+                await _userManager.AccessFailedAsync(user);
+                if (await _userManager.IsLockedOutAsync(user))
+                    // TODO send mail
+                    return Unauthorized(new AuthResponseDto {ErrorMessage = "The Account is locked out"});
+
+                return Unauthorized(new AuthResponseDto {ErrorMessage = "Invalid Authentication"});
             }
-            var tokenDto = await _authenticationService.CreateToken(populateExp: true, user);
-            var authResponse = new AuthResponseDto()
+
+            var tokenDto = await _authenticationService.CreateToken(true, user);
+
+            await _userManager.ResetAccessFailedCountAsync(user);
+
+            var authResponse = new AuthResponseDto
             {
                 RefreshToken = tokenDto.RefreshToken,
                 AccessToken = tokenDto.AccessToken,
-                IsAuthSuccessful = true,
+                IsAuthSuccessful = true
             };
             return Ok(authResponse);
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse = ErrorService.CreateError("Login fail", StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 }

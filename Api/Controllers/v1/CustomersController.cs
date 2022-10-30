@@ -1,15 +1,14 @@
 ﻿using Core.Entities.DataTransferObjects;
-using Core.Helpers.Services;
+using Core.Entities.Responses;
 using Core.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers.v1;
 
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiVersion("1.0")]
+[ApiExplorerSettings(GroupName = "v1")]
 [ApiController]
-[Authorize]
 public class CustomersController : ControllerBase
 {
     private readonly ICustomerRepository _customerRepository;
@@ -22,92 +21,82 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<CustomerDto>>> Get()
+    public async Task<ActionResult<ApiOkResponse<List<CustomerDto>>>> Get()
     {
         try
         {
             var customers = await _customerRepository.GetCustomersAsync();
-            if (!customers.Any()) return NoContent();
-            return Ok(customers);
+            return Ok(new ApiOkResponse<List<CustomerDto>>(customers));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse =
-                ErrorService.CreateError("Error in get customers", StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
     [HttpGet("{customerId}")]
-    public async Task<ActionResult<CustomerDto>> Get(string customerId)
+    public async Task<ActionResult<ApiOkResponse<CustomerDto>>> Get(string customerId)
     {
         try
         {
             var customer = await _customerRepository.GetCustomerByIdAsync(customerId);
-            if (customer == null) return NotFound($"No customer found with id: {customerId}");
-            return Ok(customer);
+            if (customer == null) return NotFound(new ApiNotFoundResponse($"No customer found with id: {customerId}"));
+            return Ok(new ApiOkResponse<CustomerDto>(customer));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse = ErrorService.CreateError("Error in get customer by id", StatusCodes.Status400BadRequest,
-                e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
     [HttpPost]
-    public async Task<ActionResult<CustomerDto>> Post(CustomerDto customerDto)
+    public async Task<ActionResult<ApiOkResponse<CustomerDto>>> Post(CustomerDto customerDto)
     {
         try
         {
             if (!ModelState.IsValid) return UnprocessableEntity(ModelState);
             var customer = await _customerRepository.CreateCustomerAsync(customerDto);
-            return Ok(customer);
+            return Ok(new ApiOkResponse<CustomerDto>(customer));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse = ErrorService.CreateError("Could not create new customer",
-                StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
         }
     }
 
     [HttpPut("{customerId}")]
-    public async Task<ActionResult<CustomerDto>> Put(string customerId, CustomerDto customerDto)
+    public async Task<ActionResult<ApiOkResponse<CustomerDto>>> Put(string customerId, CustomerDto customerDto)
     {
         try
         {
-            if (!customerId.Equals(customerDto.Id)) ErrorService.IdError(customerId);
+            if (!customerId.Equals(customerDto.Id))
+                BadRequest(new ApiBadRequestResponse($"Id: {customerId} is not the same as in Object"));
             var customer = await _customerRepository.UpdateCustomerAsync(customerDto);
-            return Ok(customer);
+            return Ok(new ApiOkResponse<CustomerDto>(customer));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse =
-                ErrorService.CreateError("Could not update customer", StatusCodes.Status400BadRequest, e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 
     [HttpDelete("{customerId}")]
-    public async Task<ActionResult<bool>> Delete(string customerId)
+    public async Task<ActionResult<ApiOkResponse<bool>>> Delete(string customerId)
     {
         try
         {
             var checkDelete = await _customerRepository.DeleteCustomerByCustomerId(customerId);
-            if (!checkDelete) throw new Exception();
-            return Ok(true);
+            if (!checkDelete) return BadRequest(new ApiBadRequestResponse("Could not delete customer"));
+            return Ok(new ApiOkResponse<bool>(checkDelete));
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            var errorResponse = ErrorService.CreateError("Could not delete customer", StatusCodes.Status400BadRequest,
-                e.Message);
-            return BadRequest(errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiInternalServerErrorResponse(e.Message));
         }
     }
 }

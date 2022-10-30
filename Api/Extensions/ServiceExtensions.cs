@@ -17,14 +17,30 @@ public static class ServiceExtensions
     {
         services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc("v1", new OpenApiInfo {Title = "Hairdressing Management", Version = "v1"});
+            c.SwaggerDoc("v1", new OpenApiInfo 
+                {
+                    Title = "Hairdressing Management v1", 
+                    Version = "v1",
+                    Description = "Hairdressing Management API",
+                    Contact = new OpenApiContact()
+                    {
+                        Name = "Tomasi-Developing",
+                        Email = "info@tomasi-developing.ch",
+                        Url = new Uri("https://wwww.tomasi-developing.ch")
+                    },
+                    License = new OpenApiLicense()
+                    {
+                        Name = "MIT License",
+                        Url = new Uri("https://github.com/TomasiDeveloping/HairdressingManagementSystem/blob/master/LICENSE.txt")
+                    }
+                });
 
             var securitySchema = new OpenApiSecurityScheme
             {
-                Description = "JWT Auth Bearer Scheme",
+                Description = "Place to add JWT with Bearer",
                 Name = "Authorization",
                 In = ParameterLocation.Header,
-                Type = SecuritySchemeType.Http,
+                Type = SecuritySchemeType.ApiKey,
                 Scheme = "bearer",
                 Reference = new OpenApiReference
                 {
@@ -89,6 +105,10 @@ public static class ServiceExtensions
                 options.Password.RequireLowercase = true;
 
                 options.User.RequireUniqueEmail = true;
+
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(3);
+                options.Lockout.MaxFailedAccessAttempts = 3;
             })
             .AddEntityFrameworkStores<RepositoryContext>();
     }
