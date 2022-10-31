@@ -13,41 +13,66 @@ public class EmployeeRepository : IEmployeeRepository
 
     public EmployeeRepository(RepositoryContext context, IMapper mapper)
     {
-        _context = context;
-        _mapper = mapper;
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
     public async Task<List<EmployeeDto>> GetEmployeesAsync()
     {
-        if (_context.Employees == null) return new List<EmployeeDto>();
+        if (_context.Employees == null) throw new ArgumentNullException(nameof(_context));
         var employees = await _context.Employees
             .Include(e => e.Address)
             .AsNoTracking()
+            .AsSplitQuery()
             .ToListAsync();
         return _mapper.Map<List<EmployeeDto>>(employees);
     }
 
-    public Task<EmployeeDto> GetEmployeeByIdAsync(string employeeId)
+    public async Task<EmployeeDto?> GetEmployeeByIdAsync(string employeeId)
     {
-        throw new NotImplementedException();
+        if (_context.Employees == null) throw new ArgumentNullException(nameof(_context));
+        var employee = await _context.Employees
+            .Include(e => e.Address)
+            .AsNoTracking()
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(e => e.Id.Equals(employeeId));
+        return employee == null ? null : _mapper.Map<EmployeeDto>(employee);
     }
 
     public async Task<EmployeeDto> CreateEmployeeAsync(EmployeeDto employeeDto)
     {
+        if (_context.Employees == null) throw new ArgumentNullException(nameof(_context));
         var employee = _mapper.Map<Employee>(employeeDto);
         employee.Address = _mapper.Map<Address>(employeeDto.AddressDto);
-        if (_context.Employees != null) await _context.Employees.AddAsync(employee);
+        await _context.Employees.AddAsync(employee);
         await _context.SaveChangesAsync();
         return _mapper.Map<EmployeeDto>(employee);
     }
 
-    public Task<EmployeeDto> UpdateEmployeeAsync(EmployeeDto employeeDto)
+    public async Task<EmployeeDto> UpdateEmployeeAsync(EmployeeDto employeeDto)
     {
-        throw new NotImplementedException();
+        if (_context.Employees == null) throw new ArgumentNullException(nameof(_context));
+        var employeeToUpdate = await _context.Employees.FirstOrDefaultAsync(e => e.Id.Equals(employeeDto.Id));
+        if (employeeToUpdate == null) throw new ArgumentException($"No employee found with id: {employeeDto.Id}");
+        _mapper.Map(employeeDto, employeeToUpdate);
+        await _context.SaveChangesAsync();
+        return _mapper.Map<EmployeeDto>(employeeToUpdate);
     }
 
-    public Task<bool> DeleteEmployeeAsync(string employeeId)
+    public async Task<bool> DeleteEmployeeAsync(string employeeId)
     {
-        throw new NotImplementedException();
+        if (_context.Employees == null) throw new ArgumentNullException(nameof(_context));
+        var employeeToDelete = await _context.Employees.FirstOrDefaultAsync(e => e.Id.Equals(employeeId));
+        if (employeeToDelete == null) throw new AggregateException($"No employee found with id: {employeeId}");
+        _context.Employees.Remove(employeeToDelete);
+        try
+        {
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception e)
+        {
+            throw new AggregateException(e.Message);
+        }
     }
 }
