@@ -1,7 +1,5 @@
 ﻿using Core.Entities.DataTransferObjects;
-using Core.Entities.Models;
 using Core.Entities.Responses;
-using Core.Helpers.Services;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,7 +27,8 @@ public class AppointmentsController : ControllerBase
         try
         {
             var appointment = await _appointmentRepository.GetAppointmentByIdAsync(appointmentId);
-            if (appointment == null) return NotFound(new ApiNotFoundResponse($"Appointment with id: {appointmentId} is not found"));
+            if (appointment == null)
+                return NotFound(new ApiNotFoundResponse($"Appointment with id: {appointmentId} is not found"));
             return Ok(new ApiOkResponse<AppointmentDto>(appointment));
         }
         catch (Exception e)
@@ -86,11 +85,13 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpPut("{appointmentId}")]
-    public async Task<ActionResult<ApiOkResponse<AppointmentDto>>> Put(string appointmentId, AppointmentDto appointmentDto)
+    public async Task<ActionResult<ApiOkResponse<AppointmentDto>>> Put(string appointmentId,
+        AppointmentDto appointmentDto)
     {
         try
         {
-            if (!appointmentId.Equals(appointmentDto.Id)) return BadRequest(new ApiBadRequestResponse($"Id: {appointmentId} is not the same as in Object"));
+            if (!appointmentId.Equals(appointmentDto.Id))
+                return BadRequest(new ApiBadRequestResponse($"Id: {appointmentId} is not the same as in Object"));
             var appointment = await _appointmentRepository.UpdateAppointmentAsync(appointmentDto);
             return Ok(new ApiOkResponse<AppointmentDto>(appointment));
         }

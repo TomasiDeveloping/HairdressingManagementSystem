@@ -9,12 +9,12 @@ public class EmployeeForRegistrationProfile : Profile
 {
     public EmployeeForRegistrationProfile()
     {
-        CreateMap<EmployeeForRegistration, User>()
+        CreateMap<EmployeeForRegistrationDto, User>()
             .ForMember(des => des.UserName, opt => opt.MapFrom(src => src.WorkEmail))
             .ForMember(des => des.Email, opt => opt.MapFrom(src => src.WorkEmail));
 
 
-        CreateMap<EmployeeForRegistration, EmployeeDto>()
+        CreateMap<EmployeeForRegistrationDto, EmployeeDto>()
             .ForMember(des => des.AddressDto, opt => opt.MapFrom(src => src.AddressDto));
     }
 }

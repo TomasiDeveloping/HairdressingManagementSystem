@@ -2,7 +2,7 @@
 
 namespace Core.Models;
 
-public class EmployeeForRegistration
+public class EmployeeForRegistrationDto
 {
     public AddressDto AddressDto { get; set; } = new();
     public string? FirstName { get; set; }

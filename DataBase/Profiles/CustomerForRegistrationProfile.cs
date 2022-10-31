@@ -9,10 +9,10 @@ public class CustomerForRegistrationProfile : Profile
 {
     public CustomerForRegistrationProfile()
     {
-        CreateMap<CustomerForRegistration, User>()
+        CreateMap<CustomerForRegistrationDto, User>()
             .ForMember(des => des.UserName, opt => opt.MapFrom(src => src.Email));
 
-        CreateMap<CustomerForRegistration, CustomerDto>()
+        CreateMap<CustomerForRegistrationDto, CustomerDto>()
             .ForMember(des => des.AddressDto, opt => opt.MapFrom(src => src.Address));
     }
 }

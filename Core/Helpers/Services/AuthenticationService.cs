@@ -17,9 +17,9 @@ namespace Core.Helpers.Services;
 
 public class AuthenticationService : IAuthenticationService
 {
+    private readonly IConfiguration _configuration;
     private readonly ICustomerRepository _customerRepository;
     private readonly IEmployeeRepository _employeeRepository;
-    private readonly IConfiguration _configuration;
     private readonly ILogger<AuthenticationService> _logger;
     private readonly IMapper _mapper;
     private readonly UserManager<User> _userManager;
@@ -36,17 +36,17 @@ public class AuthenticationService : IAuthenticationService
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
-    public async Task<IdentityResult> RegisterCustomer(CustomerForRegistration customerForRegistration)
+    public async Task<IdentityResult> RegisterCustomer(CustomerForRegistrationDto customerForRegistrationDto)
     {
         var result = new IdentityResult();
-        var user = _mapper.Map<User>(customerForRegistration);
-        var customer = _mapper.Map<CustomerDto>(customerForRegistration);
+        var user = _mapper.Map<User>(customerForRegistrationDto);
+        var customer = _mapper.Map<CustomerDto>(customerForRegistrationDto);
         customer.UserId = user.Id;
 
         using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
         try
         {
-            result = await _userManager.CreateAsync(user, customerForRegistration.Password);
+            result = await _userManager.CreateAsync(user, customerForRegistrationDto.Password);
             if (!result.Succeeded) throw new Exception();
             result = await _userManager.AddToRolesAsync(user, new[] {"Customer"});
             if (!result.Succeeded) throw new Exception();
@@ -68,18 +68,18 @@ public class AuthenticationService : IAuthenticationService
         return result;
     }
 
-    public async Task<IdentityResult> RegisterEmployee(EmployeeForRegistration employeeForRegistration)
+    public async Task<IdentityResult> RegisterEmployee(EmployeeForRegistrationDto employeeForRegistrationDto)
     {
         var result = new IdentityResult();
-        var user = _mapper.Map<User>(employeeForRegistration);
+        var user = _mapper.Map<User>(employeeForRegistrationDto);
         user.EmailConfirmed = true;
-        var employee = _mapper.Map<EmployeeDto>(employeeForRegistration);
+        var employee = _mapper.Map<EmployeeDto>(employeeForRegistrationDto);
         employee.UserId = user.Id;
 
         using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
         try
         {
-            result = await _userManager.CreateAsync(user, employeeForRegistration.Password);
+            result = await _userManager.CreateAsync(user, employeeForRegistrationDto.Password);
             if (!result.Succeeded) throw new Exception();
             result = await _userManager.AddToRolesAsync(user, new[] {"Employee"});
             if (!result.Succeeded) throw new Exception();
@@ -104,7 +104,7 @@ public class AuthenticationService : IAuthenticationService
     public async Task<TokenDto> CreateToken(bool populateExp, User user)
     {
         var signInCredentials = GetSigningCredentials();
-        var claims =  await GetClaims(user);
+        var claims = await GetClaims(user);
         var tokenOptions = GenerateTokenOptions(signInCredentials, claims);
 
         var refreshToken = GenerateRefreshToken();
@@ -117,7 +117,7 @@ public class AuthenticationService : IAuthenticationService
 
         var accessToken = new JwtSecurityTokenHandler().WriteToken(tokenOptions);
 
-        return new TokenDto()
+        return new TokenDto
         {
             RefreshToken = refreshToken,
             AccessToken = accessToken
@@ -128,11 +128,12 @@ public class AuthenticationService : IAuthenticationService
     {
         var principal = GetPrincipalFromExpiredToken(tokenDto.AccessToken!);
 
-        var user = await _userManager.FindByNameAsync(principal.Identity.Name);
+        var user = await _userManager.FindByNameAsync(principal.Identity!.Name);
 
-        if (user == null || user.RefreshToken != tokenDto.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.Now) throw  new Exception("Invalid client request. The tokenDto has some invalid values.");
+        if (user == null || user.RefreshToken != tokenDto.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.Now)
+            throw new Exception("Invalid client request. The tokenDto has some invalid values.");
 
-        return await CreateToken(populateExp: false, user);
+        return await CreateToken(false, user);
     }
 
     #region Private Methods
@@ -147,9 +148,9 @@ public class AuthenticationService : IAuthenticationService
 
     private async Task<List<Claim>> GetClaims(User user)
     {
-        var claims = new List<Claim>()
+        var claims = new List<Claim>
         {
-            new(ClaimTypes.Name, user!.UserName)
+            new(ClaimTypes.Name, user.UserName)
         };
         var roles = await _userManager.GetRolesAsync(user);
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
@@ -157,14 +158,14 @@ public class AuthenticationService : IAuthenticationService
         return claims;
     }
 
-    private JwtSecurityToken GenerateTokenOptions(SigningCredentials signingCredentials, List<Claim> claims)
+    private JwtSecurityToken GenerateTokenOptions(SigningCredentials signingCredentials, IEnumerable<Claim> claims)
     {
         var tokenOptions = new JwtSecurityToken(
-            issuer: _configuration["JwtSettings:validIssuer"],
+            _configuration["JwtSettings:validIssuer"],
             claims: claims,
             expires: DateTime.Now.AddDays(1),
             signingCredentials: signingCredentials
-            );
+        );
         return tokenOptions;
     }
 
@@ -180,7 +181,7 @@ public class AuthenticationService : IAuthenticationService
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
 
-        var tokenValidationParameters = new TokenValidationParameters()
+        var tokenValidationParameters = new TokenValidationParameters
         {
             ValidateAudience = false,
             ValidateIssuer = true,
@@ -193,12 +194,9 @@ public class AuthenticationService : IAuthenticationService
         var tokenHandler = new JwtSecurityTokenHandler();
         var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
         var jwtSecurityToken = securityToken as JwtSecurityToken;
-        if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-        {
-            throw new SecurityTokenException("Invalid token");
-        }
+        if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256,
+                StringComparison.InvariantCultureIgnoreCase)) throw new SecurityTokenException("Invalid token");
         return principal;
-
     }
 
     #endregion

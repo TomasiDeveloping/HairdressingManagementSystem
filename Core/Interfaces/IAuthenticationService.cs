@@ -6,9 +6,9 @@ namespace Core.Interfaces;
 
 public interface IAuthenticationService
 {
-    Task<IdentityResult> RegisterCustomer(CustomerForRegistration customerForRegistration);
+    Task<IdentityResult> RegisterCustomer(CustomerForRegistrationDto customerForRegistrationDto);
 
-    Task<IdentityResult> RegisterEmployee(EmployeeForRegistration employeeForRegistration);
+    Task<IdentityResult> RegisterEmployee(EmployeeForRegistrationDto employeeForRegistrationDto);
 
     Task<TokenDto> CreateToken(bool populateExp, User user);
 

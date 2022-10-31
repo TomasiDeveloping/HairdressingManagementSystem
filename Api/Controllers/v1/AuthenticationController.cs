@@ -29,14 +29,15 @@ public class AuthenticationController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("[action]")]
-    public async Task<IActionResult> RegisterCustomer(CustomerForRegistration customerForRegistration)
+    public async Task<IActionResult> RegisterCustomer(CustomerForRegistrationDto customerForRegistrationDto)
     {
         try
         {
-            var result = await _authenticationService.RegisterCustomer(customerForRegistration);
+            var result = await _authenticationService.RegisterCustomer(customerForRegistrationDto);
             if (result.Succeeded) return StatusCode(StatusCodes.Status201Created);
             foreach (var error in result.Errors) ModelState.TryAddModelError(error.Code, error.Description);
 
+            //return BadRequest(new ApiBadRequestResponse("error", JsonSerializer.Serialize(result.Errors)));
             return BadRequest(ModelState);
         }
         catch (Exception e)
@@ -48,11 +49,11 @@ public class AuthenticationController : ControllerBase
 
     [Authorize(Roles = "Administrator")]
     [HttpPost("[action]")]
-    public async Task<IActionResult> RegisterEmployee(EmployeeForRegistration employeeForRegistration)
+    public async Task<IActionResult> RegisterEmployee(EmployeeForRegistrationDto employeeForRegistrationDto)
     {
         try
         {
-            var result = await _authenticationService.RegisterEmployee(employeeForRegistration);
+            var result = await _authenticationService.RegisterEmployee(employeeForRegistrationDto);
             if (result.Succeeded) return StatusCode(StatusCodes.Status201Created);
             foreach (var error in result.Errors) ModelState.TryAddModelError(error.Code, error.Description);
 
@@ -67,40 +68,34 @@ public class AuthenticationController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("[action]")]
-    public async Task<IActionResult> Login(AuthenticationDto authenticationDto)
+    public async Task<ActionResult<ApiOkResponse<TokenDto>>> Login(AuthenticationDto authenticationDto)
     {
         try
         {
             var user = await _userManager.FindByEmailAsync(authenticationDto.Email);
-            if (user == null) return Unauthorized(new AuthResponseDto {ErrorMessage = "Invalid Authentication"});
+            if (user == null) return Unauthorized(new ApiUnauthorizedResponse("Invalid Authentication"));
 
             if (!await _userManager.IsEmailConfirmedAsync(user))
-                return Unauthorized(new AuthResponseDto {ErrorMessage = "Email is not confirmed"});
+                return Unauthorized(new ApiUnauthorizedResponse("Email is not confirmed"));
 
             if (await _userManager.IsLockedOutAsync(user))
-                return Unauthorized(new AuthResponseDto {ErrorMessage = "The Account is locked out"});
+                return Unauthorized(new ApiUnauthorizedResponse("The Account is locked out"));
 
             if (!await _userManager.CheckPasswordAsync(user, authenticationDto.Password))
             {
                 await _userManager.AccessFailedAsync(user);
                 if (await _userManager.IsLockedOutAsync(user))
                     // TODO send mail
-                    return Unauthorized(new AuthResponseDto {ErrorMessage = "The Account is locked out"});
+                    return Unauthorized(new ApiUnauthorizedResponse("The Account is locked out"));
 
-                return Unauthorized(new AuthResponseDto {ErrorMessage = "Invalid Authentication"});
+                return Unauthorized(new ApiUnauthorizedResponse("Invalid Authentication"));
             }
 
             var tokenDto = await _authenticationService.CreateToken(true, user);
 
             await _userManager.ResetAccessFailedCountAsync(user);
 
-            var authResponse = new AuthResponseDto
-            {
-                RefreshToken = tokenDto.RefreshToken,
-                AccessToken = tokenDto.AccessToken,
-                IsAuthSuccessful = true
-            };
-            return Ok(authResponse);
+            return Ok(new ApiOkResponse<TokenDto>(tokenDto));
         }
         catch (Exception e)
         {

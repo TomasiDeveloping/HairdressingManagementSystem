@@ -1,9 +1,8 @@
 ﻿using Core.Entities.DataTransferObjects;
-using Core.Entities.Models;
 
 namespace Core.Models;
 
-public class CustomerForRegistration
+public class CustomerForRegistrationDto
 {
     public string? FirstName { get; set; }
     public string? LastName { get; set; }

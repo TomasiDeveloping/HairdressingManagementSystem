@@ -17,23 +17,24 @@ public static class ServiceExtensions
     {
         services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc("v1", new OpenApiInfo 
+            c.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "Hairdressing Management v1",
+                Version = "v1",
+                Description = "Hairdressing Management API",
+                Contact = new OpenApiContact
                 {
-                    Title = "Hairdressing Management v1", 
-                    Version = "v1",
-                    Description = "Hairdressing Management API",
-                    Contact = new OpenApiContact()
-                    {
-                        Name = "Tomasi-Developing",
-                        Email = "info@tomasi-developing.ch",
-                        Url = new Uri("https://wwww.tomasi-developing.ch")
-                    },
-                    License = new OpenApiLicense()
-                    {
-                        Name = "MIT License",
-                        Url = new Uri("https://github.com/TomasiDeveloping/HairdressingManagementSystem/blob/master/LICENSE.txt")
-                    }
-                });
+                    Name = "Tomasi-Developing",
+                    Email = "info@tomasi-developing.ch",
+                    Url = new Uri("https://wwww.tomasi-developing.ch")
+                },
+                License = new OpenApiLicense
+                {
+                    Name = "MIT License",
+                    Url = new Uri(
+                        "https://github.com/TomasiDeveloping/HairdressingManagementSystem/blob/master/LICENSE.txt")
+                }
+            });
 
             var securitySchema = new OpenApiSecurityScheme
             {
