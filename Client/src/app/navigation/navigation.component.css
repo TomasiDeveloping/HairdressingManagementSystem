@@ -1,0 +1,17 @@
+.nav-background {
+  background-color: #d0d0fc;
+}
+.active {
+  color: #c026fc !important;
+}
+
+.nav-link {
+  text-transform: uppercase;
+  font-size: larger;
+}
+
+.nav-icon {
+  color: #c026fc;
+  cursor: pointer;
+  font-size: x-large;
+}

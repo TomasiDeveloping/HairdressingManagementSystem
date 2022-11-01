@@ -1,0 +1,21 @@
+.home-container {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-image: url("../../assets/pictures/home/hairdresser-gc26bc5856_1280.jpg");
+  background-position: center;
+  background-size: cover;
+  object-fit: cover;
+}
+.container {
+  color: #b9b9b9;
+}
+h1 {
+  font-size: xxx-large;
+  margin-top: 5rem;
+}
