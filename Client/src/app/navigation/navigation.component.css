@@ -10,8 +10,20 @@
   font-size: larger;
 }
 
+.nav-link:hover {
+  color: #873a9d;
+}
+
 .nav-icon {
   color: #c026fc;
   cursor: pointer;
   font-size: x-large;
+}
+
+.nav-icon:hover {
+  color: #873a9d;
+}
+
+.login {
+  cursor: pointer;
 }
